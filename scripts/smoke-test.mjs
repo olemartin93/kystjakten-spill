@@ -30,7 +30,7 @@ async function head(url) {
     return {
       status: r.status,
       type: r.headers.get('content-type') ?? '',
-      body: r.ok ? await r.text() : '',
+      body: await r.text(),
     }
   } catch (e) {
     return { status: 0, type: '', body: '', error: String(e) }
@@ -60,7 +60,8 @@ for (const icon of manifestJson?.icons ?? []) {
 const sw = await head(`${base}sw.js`)
 check('service worker script', sw.status === 200, `HTTP ${sw.status}`)
 const deepLink = await head(`${base}some/deep/link`)
-check('SPA fallback (404.html)', deepLink.body.includes('Fyrvakt'), `HTTP ${deepLink.status}`)
+// GitHub Pages serves 404.html with status 404 – what matters is that the app shell comes back.
+check('SPA fallback (404.html)', deepLink.body.includes('id="root"'), `HTTP ${deepLink.status}`)
 
 const data = await head(`${base}data/ais.json`)
 let vesselCount = 0
