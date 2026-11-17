@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="nb">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Fyrvakt – skipsjakt langs kysten</title>
+    <meta
+      name="description"
+      content="Fyrvakt er et radarspill på ekte AIS-data fra norskekysten. Finn riktig skip før tiden renner ut."
+    />
+    <meta name="theme-color" content="#04111c" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Fyrvakt" />
+    <meta property="og:title" content="Fyrvakt – skipsjakt langs kysten" />
+    <meta
+      property="og:description"
+      content="Finn riktig skip på radaren – ekte AIS-data fra norskekysten."
+    />
+    <meta property="og:image" content="%BASE_URL%icons/icon-512.png" />
+    <link rel="icon" href="%BASE_URL%favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="%BASE_URL%icons/apple-touch-icon.png" />
+    <style>
+      html,
+      body {
+        margin: 0;
+        background: #04111c;
+      }
+      #boot-splash {
+        position: fixed;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        background: #04111c;
+        color: #a3bccb;
+        font:
+          600 14px/1.4 system-ui,
+          sans-serif;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+      }
+      #boot-splash img {
+        width: 96px;
+        height: 96px;
+        display: block;
+        margin: 0 auto 16px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="boot-splash" aria-hidden="true">
+      <div><img src="%BASE_URL%logo.svg" alt="" />Fyrvakt</div>
+    </div>
+    <div id="root"></div>
+    <noscript>Fyrvakt trenger JavaScript for å kjøre.</noscript>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

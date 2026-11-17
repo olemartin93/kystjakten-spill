@@ -1,0 +1,10 @@
+node_modules
+dist
+dev-dist
+coverage
+*.local
+.env
+.env.*.local
+.DS_Store
+# Generated at deploy time by scripts/fetch-ais-snapshot.mjs – never commit live AIS data
+public/data/ais.json
