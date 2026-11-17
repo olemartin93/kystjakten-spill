@@ -1,0 +1,119 @@
+name: Deploy to GitHub Pages
+
+# Builds the static app and publishes it together with a fresh AIS snapshot.
+# The scheduled runs refresh the snapshot so the game always has recent ship positions.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+  schedule:
+    # Every 15 minutes (GitHub may delay scheduled runs under load).
+    - cron: '7,22,37,52 * * * *'
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      publish: ${{ steps.gate.outputs.publish }}
+    steps:
+      - name: Check for BarentsWatch credentials
+        id: gate
+        env:
+          HAS_CREDENTIALS: ${{ secrets.BARENTSWATCH_CLIENT_ID != '' && secrets.BARENTSWATCH_CLIENT_SECRET != '' }}
+        run: |
+          echo "has_credentials=$HAS_CREDENTIALS" >> "$GITHUB_OUTPUT"
+          if [ "${{ github.event_name }}" = "schedule" ] && [ "$HAS_CREDENTIALS" != "true" ]; then
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Skipping scheduled refresh: BARENTSWATCH_CLIENT_ID/SECRET secrets are not configured."
+          else
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.gate.outputs.publish == 'true'
+      - uses: actions/setup-node@v4
+        if: steps.gate.outputs.publish == 'true'
+        with:
+          node-version: 22
+          cache: npm
+      - name: Configure Pages
+        id: pages
+        if: steps.gate.outputs.publish == 'true'
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
+      - run: npm ci
+        if: steps.gate.outputs.publish == 'true'
+      - name: Test
+        if: steps.gate.outputs.publish == 'true' && github.event_name != 'schedule'
+        run: npm test
+      - name: Build
+        if: steps.gate.outputs.publish == 'true'
+        env:
+          BASE_PATH: ${{ steps.pages.outputs.base_path }}/
+        run: |
+          npm run build
+          # GitHub Pages serves 404.html for unknown paths – fall back to the app shell.
+          cp dist/index.html dist/404.html
+
+      - name: Fetch AIS snapshot (BarentsWatch Live AIS)
+        if: steps.gate.outputs.publish == 'true'
+        # A failed fetch must not block code deploys; scheduled refreshes fail instead,
+        # which keeps the previously published site (and snapshot) online.
+        continue-on-error: ${{ github.event_name != 'schedule' }}
+        env:
+          BARENTSWATCH_CLIENT_ID: ${{ secrets.BARENTSWATCH_CLIENT_ID }}
+          BARENTSWATCH_CLIENT_SECRET: ${{ secrets.BARENTSWATCH_CLIENT_SECRET }}
+          FALLBACK_SNAPSHOT_URL: ${{ steps.pages.outputs.base_url }}/data/ais.json
+        run: node scripts/fetch-ais-snapshot.ts dist/data/ais.json
+
+      - uses: actions/upload-pages-artifact@v3
+        if: steps.gate.outputs.publish == 'true'
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    if: needs.build.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    outputs:
+      page_url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+  verify:
+    # Post-deploy smoke test of the live site in a real browser (skipped for routine data refreshes).
+    needs: deploy
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install Playwright
+        run: |
+          npm install --no-save --no-package-lock playwright@1.63.0
+          npx playwright install --with-deps chromium
+      - name: Smoke test production URL
+        run: node scripts/smoke-test.mjs "${{ needs.deploy.outputs.page_url }}" smoke
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: smoke-screenshots
+          path: smoke
+          retention-days: 14
