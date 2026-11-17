@@ -110,7 +110,7 @@ npm run dev
 
 **One-time setup**
 
-1. _Settings → Pages → Build and deployment → Source: **GitHub Actions**_ (the workflow also tries to enable this automatically).
+1. _Settings → Pages → Build and deployment → Source: **GitHub Actions**_ (the workflow token cannot enable Pages itself).
 2. Register at [barentswatch.no](https://www.barentswatch.no/), open _Min side → API-tilgang_, and create a client of type **AIS**.
 3. Add two repository secrets (_Settings → Secrets and variables → Actions_): `BARENTSWATCH_CLIENT_ID` (e.g. `you@example.com:fyrvakt`) and `BARENTSWATCH_CLIENT_SECRET`.
 4. Run the **Deploy to GitHub Pages** workflow once (_Actions → Run workflow_).
